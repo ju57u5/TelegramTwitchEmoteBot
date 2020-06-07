@@ -6,7 +6,7 @@ from PIL import Image
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
 
-channels = [0, 44252848]
+channels = [0, 5, 44252848]
 
 emojis = dict()
 
