@@ -37,6 +37,29 @@ def create_or_get_emote_data(context):
 
     return context.bot_data["cached_channels"], context.bot_data["emotes"]
 
+def cache_stickers(context):
+    resp_emotes = context.job.context["resp_emotes"]
+    if not resp_emotes:
+        context.job.schedule_removal()
+        return
+    emote = resp_emotes.pop()
+
+    cached_emotes = context.bot_data["emotes"]
+    chat_id = context.job.context["chat_id"]
+    emote_id = emote["id"]
+    emote_code = emote["code"]
+
+    if emote_code in cached_emotes:
+        return
+
+    photo_url = f"https://www.ju57u5.de/telegrambot.php?id={emote_id}"
+    message = context.bot.sendSticker(chat_id=chat_id, sticker=photo_url, disable_notification=True)
+    sticker = message.sticker
+    file_id = sticker.file_id
+
+    cached_emotes[emote["code"]] = {"emote_id": emote_id, "file_id": file_id}
+
+
 def add_emote_command_handler(update, context):
     try:
         channel_id = int(context.args[0])
@@ -56,20 +79,7 @@ def add_emote_command_handler(update, context):
             return
 
         resp_emotes = resp.json()["emotes"]
-        for emote in resp_emotes:
-            emote_id = emote["id"]
-            emote_code = emote["code"]
-
-            if emote_code in cached_emotes:
-                continue
-
-            photo_url = f"https://www.ju57u5.de/telegrambot.php?id={emote_id}"
-            message = context.bot.sendSticker(chat_id=update.effective_chat.id, sticker=photo_url, disable_notification=True)
-            sticker = message.sticker
-            file_id = sticker.file_id
-
-            cached_emotes[emote["code"]] = {emote_id: emote_id, file_id: file_id}
-            time.sleep(30)
+        context.job_queue.run_repeating(cache_stickers, interval=5, context={"resp_emotes": resp_emotes, "chat_id": update.message.chat_id})        
         
         cached_channels.append(channel_id)
 
