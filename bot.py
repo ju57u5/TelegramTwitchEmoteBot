@@ -10,7 +10,6 @@ from io import BytesIO
 from PIL import Image
 from uuid import uuid4
 
-from structures import Emote
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
 
