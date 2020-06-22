@@ -15,12 +15,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 CACHE_TIME = 10
 
 
-def get_emoji_size(id):
-    photo = f"https://static-cdn.jtvnw.net/emoticons/v1/{id}/3.0"
-    resp = requests.get(photo, headers={'User-Agent':'Mozilla5.0(Google spider)'})
-    img = Image.open(BytesIO(resp.content))
-    return img.size
-
 def get_emoji_query_result(emote_code, cached_emotes):
     selected_emote = cached_emotes[emote_code]
     file_id = selected_emote["file_id"]
