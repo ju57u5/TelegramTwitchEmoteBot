@@ -12,10 +12,8 @@ from uuid import uuid4
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
-
 CACHE_TIME = 10
-bot_persistence = PicklePersistence(filename='bot_data', store_bot_data=True)
-updater = Updater('1213095640:AAGHYweCTVuYAWnHTxhmJLidtiG_3JX7Uu8', persistence=bot_persistence, use_context=True)
+
 
 def get_emoji_size(id):
     photo = f"https://static-cdn.jtvnw.net/emoticons/v1/{id}/3.0"
@@ -109,6 +107,16 @@ def inline_query_handler(update, context):
     
 
 if __name__ == "__main__":
+    try: 
+        with open("credentials.json") as config:
+            key = json.load(config)["key"]
+    except Exception as e:
+        print("Can't properly read credentials.json. Check if the file exists and it's correct format")
+        print(e)
+
+    bot_persistence = PicklePersistence(filename='bot_data', store_bot_data=True)
+    updater = Updater(key, persistence=bot_persistence, use_context=True)
+
     updater.dispatcher.add_handler(InlineQueryHandler(inline_query_handler))
     updater.dispatcher.add_handler(CommandHandler('add', add_emote_command_handler, filters=Filters.regex(r"[0-9]*")))
     updater.start_polling()
