@@ -167,7 +167,7 @@ def inline_query_handler(update, context):
         context.bot.answer_inline_query(query_id, [], cache_time=CACHE_TIME)
         return
 
-    print(first_results)
+    logging.debug(first_results)
 
     response = list(
         map(
