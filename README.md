@@ -6,7 +6,7 @@ Share Twitch emotes with a Telegram chat through a quick inline command.
 
 1. Copy crendentials.example.json to credentials.json.
 ```bash
-cp crendentials.example.json credentials.json
+cp credentials.example.json credentials.json
 ```
 
 2. Add you bot api key to credentials.json.
