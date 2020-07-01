@@ -1,3 +1,8 @@
+"""
+TelegramTwitchEmoteBot
+
+Share Twitch emotes with a Telegram chat through a quick inline command.
+"""
 from telegram.ext import Updater, InlineQueryHandler, CommandHandler, PicklePersistence
 from telegram.ext.filters import Filters
 from telegram import InlineQueryResultPhoto, InlineQueryResultCachedSticker
@@ -9,6 +14,7 @@ import time
 from io import BytesIO
 from PIL import Image
 from uuid import uuid4
+import sys
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
@@ -16,11 +22,24 @@ CACHE_TIME = 10
 
 
 def get_emoji_query_result(emote_code, cached_emotes):
+    """
+    Gets the emote information for the emote indicated by emote_code out of cached_emotes and return an
+    appropiately constructed InlineQueryResultCachedSticker.
+
+    Returns InlineQueryResultCachedSticker(id=emote_code, sticker_file_id=file_id).
+    """
     selected_emote = cached_emotes[emote_code]
     file_id = selected_emote["file_id"]
     return InlineQueryResultCachedSticker(id=emote_code, sticker_file_id=file_id)
 
 def create_or_get_emote_data(context):
+    """
+    This will make sure that the list cached_channels and the dict emotes are initialised inside bot_data before returning them.
+
+    These list and dict are used, to store the cached stickers.
+
+    Returns the touple (cached_channels, emotes) from inside bot_data.
+    """
     if "cached_channels" not in context.bot_data:
              context.bot_data["cached_channels"] = list()
     if "emotes" not in context.bot_data:
@@ -29,6 +48,20 @@ def create_or_get_emote_data(context):
     return context.bot_data["cached_channels"], context.bot_data["emotes"]
 
 def cache_stickers(context):
+    """
+    This job will cache stickers by sending them to the chat indicated by chat_id inside the jobs context.
+    This is needed because Twitch emotes are generally not big enough to be included in a sticker pack.
+    Fortunatly Telegram still allows a sticker-like behavior, if you send a regular webp file that contains
+    transparency inside a private chat.
+    This file can then be send as an inline result with the returned file_id.
+
+    This job will therefore be scheduled to send all the stickers of a specific Twitch channel and record all
+    file_ids inside the bots data-dictonary.
+
+    The webp conversion is done with the php script telegrambot.php.
+
+    When all stickers are send, the job will automatically schedule a removal from the job_queue.
+    """
     resp_emotes = context.job.context["resp_emotes"]
     if not resp_emotes:
         context.job.schedule_removal()
@@ -52,6 +85,10 @@ def cache_stickers(context):
 
 
 def add_emote_command_handler(update, context):
+    """
+    CommandHandler that adds emotes from a specific channel to the bots cache. Format /add <channelid>.
+    Emotes are determined with querries to the twitchemotes.com API.
+    """
     try:
         channel_id = int(context.args[0])
         cached_channels, cached_emotes = create_or_get_emote_data(context)
@@ -81,6 +118,11 @@ def add_emote_command_handler(update, context):
          
 
 def inline_query_handler(update, context):
+    """
+    Handler for the inline queries of this bot. Inline Mode will be used to send the actual emotes to the Telegram chat.
+
+    Format @bot <emoteName>
+    """
     cached_channels, cached_emotes = create_or_get_emote_data(context)
     query_text = update.inline_query.query
     query_id = update.inline_query.id
@@ -107,6 +149,7 @@ if __name__ == "__main__":
     except Exception as e:
         print("Can't properly read credentials.json. Check if the file exists and it's correct format")
         print(e)
+        sys.exit()
 
     bot_persistence = PicklePersistence(filename='bot_data', store_bot_data=True)
     updater = Updater(key, persistence=bot_persistence, use_context=True)
