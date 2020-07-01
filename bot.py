@@ -16,8 +16,9 @@ from PIL import Image
 from uuid import uuid4
 import sys
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                     level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 CACHE_TIME = 10
 
 
@@ -32,20 +33,23 @@ def get_emoji_query_result(emote_code, cached_emotes):
     file_id = selected_emote["file_id"]
     return InlineQueryResultCachedSticker(id=emote_code, sticker_file_id=file_id)
 
+
 def create_or_get_emote_data(context):
     """
-    This will make sure that the list cached_channels and the dict emotes are initialised inside bot_data before returning them.
+    This will make sure that the list cached_channels and the dict emotes are initialised inside bot_data
+    before returning them.
 
     These list and dict are used, to store the cached stickers.
 
     Returns the touple (cached_channels, emotes) from inside bot_data.
     """
     if "cached_channels" not in context.bot_data:
-             context.bot_data["cached_channels"] = list()
+        context.bot_data["cached_channels"] = list()
     if "emotes" not in context.bot_data:
-             context.bot_data["emotes"] = dict()
+        context.bot_data["emotes"] = dict()
 
     return context.bot_data["cached_channels"], context.bot_data["emotes"]
+
 
 def cache_stickers(context):
     """
@@ -77,7 +81,9 @@ def cache_stickers(context):
         return
 
     photo_url = f"https://www.ju57u5.de/telegrambot.php?id={emote_id}"
-    message = context.bot.sendSticker(chat_id=chat_id, sticker=photo_url, disable_notification=True)
+    message = context.bot.sendSticker(
+        chat_id=chat_id, sticker=photo_url, disable_notification=True
+    )
     sticker = message.sticker
     file_id = sticker.file_id
 
@@ -92,34 +98,52 @@ def add_emote_command_handler(update, context):
     try:
         channel_id = int(context.args[0])
         cached_channels, cached_emotes = create_or_get_emote_data(context)
-        
+
         if channel_id in cached_channels:
-            context.bot.send_message(chat_id=update.effective_chat.id, text="Channel was already added to the bot but I'm gonna check if there are new emotes")
-            
-        
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Channel was already added to the bot but I'm gonna check if there are new emotes",
+            )
+
         channel_api_url = f"https://api.twitchemotes.com/api/v4/channels/{channel_id}"
         resp = requests.get(channel_api_url)
         if resp.status_code == 404:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=f"Error: channel with id {channel_id} not found.")
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"Error: channel with id {channel_id} not found.",
+            )
             return
         if resp.status_code != 200:
-            context.bot.send_message(chat_id=update.effective_chat.id, text="Error: can't reach twitchemotes API.")
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Error: can't reach twitchemotes API.",
+            )
             return
 
         resp_emotes = resp.json()["emotes"]
-        context.job_queue.run_repeating(cache_stickers, interval=5, context={"resp_emotes": resp_emotes, "chat_id": update.message.chat_id})        
-        
+        context.job_queue.run_repeating(
+            cache_stickers,
+            interval=5,
+            context={"resp_emotes": resp_emotes, "chat_id": update.message.chat_id},
+        )
+
         cached_channels.append(channel_id)
 
     except ValueError:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Argument channel id must be a whole number.")
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Argument channel id must be a whole number.",
+        )
     except IndexError:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Missing argument: channel id")
-         
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Missing argument: channel id"
+        )
+
 
 def inline_query_handler(update, context):
     """
-    Handler for the inline queries of this bot. Inline Mode will be used to send the actual emotes to the Telegram chat.
+    Handler for the inline queries of this bot.
+    Inline Mode will be used to send the actual emotes to the Telegram chat.
 
     Format @bot <emoteName>
     """
@@ -127,34 +151,48 @@ def inline_query_handler(update, context):
     query_text = update.inline_query.query
     query_id = update.inline_query.id
 
-    if not query_text: 
+    if not query_text:
         return
 
-    possible_queries = filter(lambda x: (query_text.upper() in x.upper()), cached_emotes.keys())
+    possible_queries = filter(
+        lambda x: (query_text.upper() in x.upper()), cached_emotes.keys()
+    )
     first_results = list(itertools.islice(possible_queries, 12))
 
     if len(first_results) == 0:
         context.bot.answer_inline_query(query_id, [], cache_time=CACHE_TIME)
         return
-    
+
     print(first_results)
-    response = list(map(lambda emote_code: get_emoji_query_result(emote_code, cached_emotes), first_results))
+
+    response = list(
+        map(
+            lambda emote_code: get_emoji_query_result(emote_code, cached_emotes),
+            first_results,
+        )
+    )
     context.bot.answer_inline_query(query_id, response, cache_time=CACHE_TIME)
-    
+
 
 if __name__ == "__main__":
-    try: 
+    try:
         with open("credentials.json") as config:
             key = json.load(config)["key"]
     except Exception as e:
-        print("Can't properly read credentials.json. Check if the file exists and it's correct format")
+        print(
+            "Can't properly read credentials.json. Check if the file exists and it's correct format"
+        )
         print(e)
         sys.exit()
 
-    bot_persistence = PicklePersistence(filename='bot_data', store_bot_data=True)
+    bot_persistence = PicklePersistence(filename="bot_data", store_bot_data=True)
     updater = Updater(key, persistence=bot_persistence, use_context=True)
 
     updater.dispatcher.add_handler(InlineQueryHandler(inline_query_handler))
-    updater.dispatcher.add_handler(CommandHandler('add', add_emote_command_handler, filters=Filters.regex(r"[0-9]*")))
+    updater.dispatcher.add_handler(
+        CommandHandler(
+            "add", add_emote_command_handler, filters=Filters.regex(r"[0-9]*")
+        )
+    )
     updater.start_polling()
     updater.idle()
