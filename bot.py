@@ -19,6 +19,7 @@ import sys
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
+
 CACHE_TIME = 10
 
 
@@ -92,7 +93,10 @@ def cache_stickers(context):
 
 def add_emote_command_handler(update, context):
     """
-    CommandHandler that adds emotes from a specific channel to the bots cache. Format /add <channelid>.
+    CommandHandler that adds emotes from a specific channel to the bots cache. 
+    
+    Format: /add <channelid>.
+
     Emotes are determined with querries to the twitchemotes.com API.
     """
     try:
@@ -102,7 +106,7 @@ def add_emote_command_handler(update, context):
         if channel_id in cached_channels:
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="Channel was already added to the bot but I'm gonna check if there are new emotes",
+                text="Channel was already added to the bot but I'm gonna check if there are new emotes.",
             )
 
         channel_api_url = f"https://api.twitchemotes.com/api/v4/channels/{channel_id}"
@@ -136,7 +140,7 @@ def add_emote_command_handler(update, context):
         )
     except IndexError:
         context.bot.send_message(
-            chat_id=update.effective_chat.id, text="Missing argument: channel id"
+            chat_id=update.effective_chat.id, text="Missing argument: channel id."
         )
 
 
@@ -180,7 +184,7 @@ if __name__ == "__main__":
             key = json.load(config)["key"]
     except Exception as e:
         print(
-            "Can't properly read credentials.json. Check if the file exists and it's correct format"
+            "Can't properly read credentials.json. Check if the file exists and it's correct format."
         )
         print(e)
         sys.exit()
